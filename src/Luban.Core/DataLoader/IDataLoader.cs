@@ -12,4 +12,6 @@ public interface IDataLoader
     List<Record> ReadMulti(TBean type);
 
     void Load(string rawUrl, string subAsset, Stream stream);
+
+    List<List<string>> GetDefineRows();
 }

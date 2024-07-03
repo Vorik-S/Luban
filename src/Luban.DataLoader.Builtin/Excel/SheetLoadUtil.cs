@@ -66,8 +66,9 @@ public static class SheetLoadUtil
         var cells = ParseRawSheetContent(reader, orientRow, false);
         ValidateTitles(cells);
         var title = ParseTitle(cells, reader.MergeCells, orientRow);
+        var notDataCells = cells.FindAll(c => IsNotDataRow(c));
         cells.RemoveAll(c => IsNotDataRow(c));
-        return new RawSheet() { Title = title, TableName = tableName, SheetName = reader.Name, Cells = cells };
+        return new RawSheet() { Title = title, TableName = tableName, SheetName = reader.Name, Cells = cells, NotDataCells = notDataCells };
     }
 
 
@@ -400,28 +401,28 @@ public static class SheetLoadUtil
                 case "comment":
                 case "desc":
                 case "type":
-                {
-                    break;
-                }
+                    {
+                        break;
+                    }
                 case "row":
-                {
-                    orientRow = true;
-                    break;
-                }
+                    {
+                        orientRow = true;
+                        break;
+                    }
                 case "column":
-                {
-                    orientRow = false;
-                    break;
-                }
+                    {
+                        orientRow = false;
+                        break;
+                    }
                 case "table":
-                {
-                    tableName = value;
-                    break;
-                }
+                    {
+                        tableName = value;
+                        break;
+                    }
                 default:
-                {
-                    throw new Exception($"非法单元薄 meta 属性定义 {attr}, 合法属性有: +,var,row,column,table=<tableName>");
-                }
+                    {
+                        throw new Exception($"非法单元薄 meta 属性定义 {attr}, 合法属性有: +,var,row,column,table=<tableName>");
+                    }
             }
         }
         return true;

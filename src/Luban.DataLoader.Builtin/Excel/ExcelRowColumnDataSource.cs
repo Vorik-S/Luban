@@ -16,18 +16,26 @@ public class ExcelRowColumnDataSource : DataLoaderBase
     private static readonly NLog.Logger s_logger = NLog.LogManager.GetCurrentClassLogger();
 
     private readonly List<RowColumnSheet> _sheets = new();
+    private readonly List<List<Cell>> _notDataCells = new();
+    private readonly List<List<Cell>> _dataCells = new();
 
 
     public override void Load(string rawUrl, string sheetName, Stream stream)
     {
         s_logger.Trace("{} {}", rawUrl, sheetName);
         RawUrl = rawUrl;
-
+        var hasAddNotData = false;
         foreach (RawSheet rawSheet in SheetLoadUtil.LoadRawSheets(rawUrl, sheetName, stream))
         {
             var sheet = new RowColumnSheet(rawUrl, sheetName, rawSheet.SheetName);
             sheet.Load(rawSheet);
             _sheets.Add(sheet);
+            if (!hasAddNotData)
+            {
+                _notDataCells.AddRange(rawSheet.NotDataCells);
+                hasAddNotData = true;
+            }
+            _dataCells.AddRange(rawSheet.Cells);
         }
 
         if (_sheets.Count == 0)
@@ -93,5 +101,31 @@ public class ExcelRowColumnDataSource : DataLoaderBase
     public override Record ReadOne(TBean type)
     {
         throw new Exception($"excel不支持单例读取模式");
+    }
+
+    public override List<List<string>> GetDefineRows()
+    {
+        var result = new List<List<string>>();
+        var first = new List<string>() { "", "", "" };
+        var hasId = _notDataCells[0][2].Value.ToString().StartsWith("#");
+        var hasComment = _notDataCells[0][3].Value.ToString().StartsWith("#");
+        foreach (var cells in _notDataCells)
+        {
+            var cf = cells[0].Value.ToString();
+            if (cf == "##type")
+                first[0] = cells[1].Value.ToString().Trim();
+            else if (cf == "##desc" || cf == "##comment" || cf == "##")
+                first[2] = cells[1].Value.ToString();
+        }
+        result.Add(first);
+        foreach (var cells in _dataCells)
+        {
+            var item = new List<string>();
+            item.Add(cells[1].Value.ToString().Trim());
+            item.Add(hasId ? cells[2].Value.ToString().Trim() : (result.Count - 1).ToString());
+            item.Add(hasComment ? cells[3].Value.ToString() : cells[1].Value.ToString().Trim());
+            result.Add(item);
+        }
+        return result;
     }
 }

@@ -76,4 +76,9 @@ public class JsonDataSource : DataLoaderBase
     {
         return ReadRecord(_data, type);
     }
+
+    public override List<List<string>> GetDefineRows()
+    {
+        return null;
+    }
 }

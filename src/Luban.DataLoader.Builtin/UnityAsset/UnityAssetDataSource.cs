@@ -82,4 +82,9 @@ public class UnityAssetDataSource : DataLoaderBase
         var tags = DataUtil.ParseTags(tagName);
         return new Record(data, RawUrl, tags);
     }
+
+    public override List<List<string>> GetDefineRows()
+    {
+        return null;
+    }
 }

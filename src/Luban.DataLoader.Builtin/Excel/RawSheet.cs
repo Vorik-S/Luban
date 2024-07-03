@@ -9,4 +9,6 @@ public class RawSheet
     public string SheetName { get; set; }
 
     public List<List<Cell>> Cells { get; set; }
+
+    public List<List<Cell>> NotDataCells { get; set; }
 }

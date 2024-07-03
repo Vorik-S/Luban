@@ -55,6 +55,7 @@ public class ExcelSchemaLoader : SchemaLoaderBase
                 new() { Name = "comment", Type = "string" },
                 new() { Name = "read_schema_from_file", Type = "bool" },
                 new() { Name = "input", Type = "string" },
+                new() { Name = "export_define", Type = "bool" },
                 new() { Name = "output", Type = "string" },
                 new() { Name = "tags", Type = "string" },
             }
@@ -90,13 +91,51 @@ public class ExcelSchemaLoader : SchemaLoaderBase
             string comment = (data.GetField("comment") as DString).Value.Trim();
             bool readSchemaFromFile = (data.GetField("read_schema_from_file") as DBool).Value;
             string inputFile = (data.GetField("input") as DString).Value.Trim();
+            bool exportDefine = (data.GetField("export_define") as DBool).Value;
             // string patchInput = (data.GetField("patch_input") as DString).Value.Trim();
             string tags = (data.GetField("tags") as DString).Value.Trim();
             string outputFile = (data.GetField("output") as DString).Value.Trim();
             // string options = (data.GetField("options") as DString).Value.Trim(); 
             var table = SchemaLoaderUtil.CreateTable(fileName, name, module, valueType, index, mode, group, comment, readSchemaFromFile, inputFile, tags, outputFile);
             Collector.Add(table);
+            if (exportDefine)
+                LoadEnumListFromTableFile(module, inputFile.Split(',')[0]);
         };
+    }
+
+    private void LoadEnumListFromTableFile(string module, string fileName)
+    {
+        string inputDataDir = GenerationContext.GetInputDataPath();
+        (var actualFile, var sheetName) = FileUtil.SplitFileAndSheetName(FileUtil.Standardize(Path.Combine(inputDataDir, fileName)));
+        var loader = DataLoaderManager.Ins.CreateDataLoader(FileUtil.GetExtensionWithDot(actualFile));
+        using var stream = new FileStream(actualFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        loader.Load(actualFile, sheetName, stream);
+        var rowList = loader.GetDefineRows();
+        if (rowList == null || rowList.Count == 0)
+            return;
+
+        List<EnumItem> items = new();
+        for (int i = 1; i < rowList.Count; i++)
+        {
+            var rows = rowList[i];
+            var item = new EnumItem()
+            {
+                Name = rows[0],
+                Value = rows[1],
+                Comment = rows[2],
+            };
+            items.Add(item);
+        }
+        var curEnum = new RawEnum()
+        {
+            Name = rowList[0][0],
+            Namespace = module,
+            IsFlags = false,
+            Comment = rowList[0][2],
+            Groups = SchemaLoaderUtil.CreateGroups(""),
+            Items = items,
+        };
+        Collector.Add(curEnum);
     }
 
     private void LoadEnumListFromFile(string fileName)
